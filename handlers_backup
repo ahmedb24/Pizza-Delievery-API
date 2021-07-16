@@ -1,0 +1,828 @@
+/**
+ * Handlers to handle incoming routes
+ * 
+ *  
+ */
+
+//Dependencies
+const _data = require('./data');
+const helpers = require('./helpers');
+const config = require('./config');
+
+//Container for the handlers
+const handlers = {}
+
+handlers.test = (data, callback) => {
+    callback(300, {Result: 'This is the test payload'}, 'json');
+}
+
+//Not-Found Handler
+handlers.notFound = (data, callback) => {
+    callback(404);
+}
+
+/**
+ * JSON API Handlers
+ * 
+ */
+
+//Users Handler
+handlers.users = (data, callback) => {
+    const acceptableMethods = ['post', 'get', 'put', 'delete'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._users[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+//Container for user's methods
+handlers._users = {};
+
+//Users - POST
+//Required fields: name, email address, street address, password 
+//Required fields: none
+handlers._users.post = (data, callback) => {
+    //Validate required fields
+    var name = typeof(data.payload.name) == 'string' && data.payload.name.trim().length > 0 ? data.payload.name.trim() : false;
+    var password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 ? data.payload.password.trim() : false;
+    var email_address = typeof(data.payload.email_address) == 'string' && data.payload.email_address.trim().length > 2 && data.payload.email_address.indexOf('@') > -1 ? data.payload.email_address.trim() : false;
+    var street_address = typeof(data.payload.street_address) == 'string' && data.payload.street_address.trim().length > 2 && data.payload.street_address.indexOf(' ') > -1 ? data.payload.street_address.trim() : false;
+    
+    if (name && password && email_address && street_address) {  
+        //Fields are valid, Hash the user's password
+        var hashedPassword = helpers.hash(password);
+
+        if (hashedPassword) {
+            //Generate a random ID for new user
+            var userId = helpers.createRandomString(10);
+
+            if (userId) {
+                //Create User object
+                const newUserData = {
+                    userId,
+                    name,
+                    hashedPassword,
+                    email_address,
+                    street_address
+                }
+
+                //Create the new user
+                _data.create('users', userId, newUserData, (err) => {
+                    if (!err) {
+                        callback(200, {Result: 'Created New User Successfully'})
+                    } else {
+                        //Could not create new userId, callback 500
+                        callback(500, {Error: 'Could not create the new user'})
+                    }
+                });
+            } else {
+                //Could not create new userId, callback a 500
+                callback(500, {Error: 'Could not create ID for new user'})
+            }
+        } else {
+            //Could not hash password, callback a 500
+            callback(500, {Error: 'Could not hash the user\'s password'})
+        }
+    } else {
+        //Required field missing or invalid, callback a 400
+        callback(400, {Error: 'Missing or invalid required field(s)'});
+    }
+}
+
+//Users - GET
+//Required fields: email address
+//Optional fields: none
+handlers._users.get = (data, callback) => {
+    //Validate required fileds
+    var email_address = typeof(data.queryStringObject.email_address) == 'string' && data.queryStringObject.email_address.trim().length > 2 && data.queryStringObject.email_address.indexOf('@') > -1 ? data.queryStringObject.email_address.trim() : false;
+
+    //Error if email_address is invalid
+    if (email_address) {
+       
+        //Get token from headers
+        var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+        
+        //Verify the token
+        handlers._tokens.verifyToken(token, email_address, (isTokenValid, userId) => {
+            if (isTokenValid) {
+        
+                //Token is valid so lookup the user
+                _data.read('users', userId, (err, userData) => {
+                    if (!err && userData) {
+        
+                        //Delete the hashed password from the userData and send it to the requesting user
+                        delete userData.hashedPassword;
+                        callback(200, userData);
+                    } else {
+                        callback(404, {Error: 'The specified user does not exist'});
+                    }
+                });
+            } else {
+                callback(403, {Error: 'Missing or invalid token specified'});
+            }
+        });
+    } else {
+        callback(400, {Error: 'Missing required field(s)'});
+    }
+}
+
+//Users - PUT
+//Required fields: email_address
+//Optional fields: name, street_address, password 
+handlers._users.put = (data, callback) => {
+    //Validate Required fields
+    var email_address = typeof(data.payload.email_address) == 'string' && data.payload.email_address.trim().length > 2 && data.payload.email_address.indexOf('@') > -1 ? data.payload.email_address.trim() : false;
+    
+    //Validate Optional fields
+    var name = typeof(data.payload.name) == 'string' && data.payload.name.trim().length > 0 ? data.payload.name.trim() : false;
+    var password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 ? data.payload.password.trim() : false;
+    var street_address = typeof(data.payload.street_address) == 'string' && data.payload.street_address.trim().length > 2 && data.payload.street_address.indexOf(' ') > -1 ? data.payload.street_address.trim() : false;
+    
+    //Error if email_address is invalid
+    if (email_address) {
+        //Error if there's nothing to update
+        if (name || password || street_address) {
+            
+            //Get the token from the headers
+            var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+            
+            //Verify that the token is valid for the email address
+            handlers._tokens.verifyToken(token, email_address, (isTokenValid, userId) => {
+                //Error if token is invalid
+                if (isTokenValid && userId) {
+                    
+                    //Looup the user
+                    _data.read('users', userId, (err, userData) => {
+                        if (!err && userData) {
+                            //Update fields if necessary
+                            if (name) {
+                                userData.name = name;
+                            }
+                            if (password) {
+                                var hashedPassword = helpers.hash(password);
+                                userData.hashedPassword = hashedPassword;
+                            }
+                            if (street_address) {
+                                userData.street_address = street_address;
+                            }
+
+                            //Store the newly updated user
+                            _data.update('users', userId, userData, (err) => {
+                                if (!err) {
+                                    callback(200, {Result: 'User updated Successfully'});
+                                } else {
+                                    callback(500, {Error: 'Could not update the user'})
+                                }
+                            });
+                        } else {
+                            callback(400, {Error: 'Specified user does not exist'});
+                        }
+                    });
+                } else {
+                    callback(403, {Error: 'Missing or invalid token'});
+                }
+            });
+        } else {
+            callback(400, {Error: 'Missing field(s) to update'});
+        }
+    } else {
+        callback(400, {Error: 'Missing required field'});
+    }
+
+}
+
+//Users - DELETE
+//Required fields: email_address
+//Optional fields: none 
+handlers._users.delete = (data, callback) => {
+    //Validate email_address
+    var email_address = typeof(data.queryStringObject.email_address) == 'string' && data.queryStringObject.email_address.trim().length > 2 && data.queryStringObject.email_address.indexOf('@') > -1 ? data.queryStringObject.email_address.trim() : false;
+
+    //Error if email address is invalid
+    if (email_address) {
+
+        //Get and validate token from headers
+        var token = typeof(data.headers.token) == 'string' ? data.headers.token : false
+    
+        //Verify that the token is valid for email address provided
+        handlers._tokens.verifyToken(token, email_address, (isTokenValid, userId) => {
+            if (isTokenValid && userId) {
+                //Lookup the user
+                _data.read('users', userId, (err, userData) => {
+                    
+                    if (!err && userData) {
+                        //Delete the user
+                        _data.delete('users', userId, (err) => {
+                            if (!err) {
+                                callback(200, {Result:'User deleted Successfully'});
+                            } else {
+                                callback(500, {Error: 'Could not delete the specified user'});
+                            }
+                        });
+                    } else {
+                        callback(400, {Error: 'Could not find the specified user'});
+                    }
+                });
+            } else {
+                callback(403, {Error: 'Mising required token in header, or token is invalid'});
+            }
+        });
+    } else {
+        callback(400, {Error: 'Mising or invalid requires field(s)'});
+    }
+}
+
+//Verify and get requested user from list of available users
+handlers._users.VerifyUser = (email_address, callback) => {
+    //List all the users
+    _data.list('users', (err, fileNames) => {
+        if (!err && fileNames && fileNames.length > 0) {
+            var isUserFound = false; 
+            var counter = 0;
+            fileNames.forEach(fileName => {
+                //Lookup the file to check if its the required user file
+                _data.read('users', fileName, (err, userData) => {
+                    counter++;
+                    if (!err && userData) {
+                        //Check if the current userData contains the email_address being looked for
+                        if (userData.email_address == email_address) {
+                            isUserFound = true;
+                            callback(true, userData);
+                        } 
+                        if (isUserFound == false && counter >= fileNames.length) {
+                            callback(false);
+                        }
+                    }
+                });
+            });
+        } else {
+            callback(false);
+        }
+    });
+}
+
+//Tokens Handler
+handlers.tokens = (data, callback) => {
+    const acceptableMethods = ['post', 'get', 'put', 'delete'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._tokens[data.method](data, callback);
+    }
+}
+
+//Container for token methods
+handlers._tokens = {}
+
+
+//Tokens - POST
+//Required fields: email_address, password  
+//Optional fields: none 
+handlers._tokens.post = (data, callback) => {
+    //Validate required fileds
+    var email_address = typeof(data.payload.email_address) == 'string' && data.payload.email_address.trim().length > 2 && data.payload.email_address.indexOf('@') > -1 ? data.payload.email_address.trim() : false;
+    var password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 ? data.payload.password.trim() : false;
+
+    if (email_address && password) {
+        //Verify that the specified user exist
+        handlers._users.VerifyUser(email_address, (isUserExisting, userData) => {
+            if (isUserExisting && userData) {
+                //Hash the password
+                var hashedPassword = helpers.hash(password);
+                
+                //Make sure specified password when hashed matches the hashed password that is stored
+                if (hashedPassword == userData.hashedPassword) {
+                    var expires = Date.now() + config.ONE_HOUR_IN_MILLISECONDS; 
+                    var id = helpers.createRandomString(20);
+                    var userId = userData.userId;
+                    //user is valid so create a token object with token that expires 1 hour from now
+                    var tokenData = {
+                        id: id,
+                        expires: expires,
+                        email_address: email_address,
+                        userId: userId
+                    }
+
+                    //Store the token
+                    _data.create('tokens', id, tokenData, (err) => {
+                        if (!err) { 
+                            callback(200, {tokenData});
+                        } else {
+                            callback(500, {Error: 'Could not create new token'});
+                        }
+                    });
+
+                } else {
+                    callback(400, {Error: 'Password did not match the specified user\'s stored password'});
+                }
+            } else {
+                callback(403, {Error: 'The specified user does not exist'})
+            }
+        });
+    } else {
+        callback(400, {Error: 'Missing or invalid required field(s)'});
+    }
+}
+
+//Tokens - GET
+//Required fields: id
+//Optional fields: none
+handlers._tokens.get = (data, callback) => {
+    //Validate required fields
+    var id = typeof(data.queryStringObject.id) == 'string' && data.queryStringObject.id.trim().length > 0 ? data.queryStringObject.id.trim() : false;
+
+    //Error if id is invalid
+    if (id) {
+        
+        //Lookup the token
+        _data.read('tokens', id, (err, tokenData) => {
+            if (!err && tokenData) {
+                callback(200, tokenData);
+            } else {
+                callback(404, {Error: 'The Specified token does not exist'});
+            }
+        });
+    } else {
+        callback(400, {Error: 'Missing or invalid required fields'});
+    }
+}
+
+//Tokens - PUT (Extend)
+//Required fields: id, extend
+//Optional fields:none
+handlers._tokens.put = (data, callback) => {
+    //Validate required fields
+    var id = typeof(data.payload.id) == 'string' && data.payload.id.trim().length > 0 ? data.payload.id.trim() : false;
+    var extend = typeof(data.payload.extend) == 'boolean' && data.payload.extend ? true : false;
+
+    //Error if required fields are invalid
+    if (id && extend) {
+        //Get the email from the headers
+        var email_address = typeof(data.headers.email) == 'string' && data.headers.email.trim().length > 2 && data.headers.email.indexOf('@') > -1 ? data.headers.email.trim() : false;
+        
+        if (email_address) {
+            //Verify the token is valid for the given email_address
+            handlers._tokens.verifyToken(id, email_address, (isTokenValid, userId, tokenData) => {
+                if (isTokenValid && tokenData) {
+                    //Verify the token isn't expired
+                    if (tokenData.expires > Date.now()) {
+                        //Token isn't expired, extend its expiration by an hour
+                        tokenData.expires = tokenData.expires + config.ONE_HOUR_IN_MILLISECONDS;
+    
+                        //Store the updated token
+                        _data.update('tokens', id, tokenData, (err) => {
+                            if (!err) {
+                                callback(200, {Result: 'Token expiration extended succesfully'});
+                            } else {
+                                callback(500, {Error: 'Could not extend the specified token\'s expiration'});
+                            }
+                        });
+                    } else {
+                        callback(400, {Error: 'The specified token has already expired and cannot be extended'});
+                    }
+                } else {
+                    callback(403, {Error: 'Invalid token or email provided'});
+                }
+            });
+        } else {
+            callback(403, {Error: 'Invalid email in headers'});
+        }
+    } else {
+        callback(400, {Error: 'Missing or invalid required fields'});
+    }
+
+}
+
+//Tokens - DELETE
+//Required fields: id
+//Optional fields: none
+handlers._tokens.delete = (data, callback) => {
+    var id = typeof(data.queryStringObject.id) == 'string' && data.queryStringObject.id.trim().length > 0 ? data.queryStringObject.id.trim() : false;
+
+    //Error if ID is invalid
+    if (id) {
+        //Get the email from the headers
+        var email_address = typeof(data.headers.email) == 'string' && data.headers.email.trim().length > 2 && data.headers.email.indexOf('@') > -1 ? data.headers.email.trim() : false;
+        
+        if (email_address) {
+
+            //Verify the token is valid for the given email_address
+            handlers._tokens.verifyToken(id, email_address, (isTokenValid) => {
+                if (isTokenValid) {
+                    //Token is valid, so delete it
+                    _data.delete('tokens', id, (err) => {
+                        if (!err) {
+                            callback(200, {Result: 'Token deleted successfully'});
+                        } else {
+                            callback(500, {Error: 'Could not delete the specified token'});
+                        }
+                    });
+                } else {
+                    callback(403, {Error: 'Invalid token or email provided'})
+                }
+            });
+        } else {
+            callback(403, {Error: 'Missing or invalid email in headers'});
+        }
+    } else {
+        callback(400, {Error: 'Missing or invalid required fields'});
+    }
+}
+
+//Verify if a given token id is valid for a given user
+handlers._tokens.verifyToken = (id, email_address, callback) => {
+    //Lookup the token
+    _data.read('tokens', id, (err, tokenData) => {
+        if (!err && tokenData) {
+            //Get the user ID from the token Data
+            var userId = tokenData.userId;
+
+            //Lookup the user
+            _data.read('users', userId, (err, userData) => {
+                if (!err && userData) {
+                    //Verify that the token is valid for the given user and has not expired
+                    if (userData.email_address == email_address && tokenData.expires > Date.now()) {
+                        callback(true, userId, tokenData);
+                    } else {
+                        callback(false);
+                    }
+                } else {
+                    callback(false);
+                }
+            });
+        } else {
+            callback(false);
+        }
+    });
+}
+
+//Menu Handler
+handlers.menu = (data, callback) => {
+    var acceptableMethods = ['get'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._menu[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+//Container for menu methods
+handlers._menu = {};
+
+//Menu - GET
+//Required fields: none
+//Optional fields: none
+handlers._menu.get = (data, callback) => {
+    //Lookup the token from the headers
+    var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+
+    //Error if token if invalid
+    if (token) {
+        //Lookup the token
+        _data.read('tokens', token, (err, tokenData) => {
+            if (!err && tokenData) {
+                //List out all items in the menu
+                _data.list('menu', (err, menuItemNames) => {
+                    if (!err && menuItemNames && menuItemNames.length > 0) {
+                        var itemsToRead = menuItemNames.length;
+                        var menus = {};
+                        menus.menu = [];
+                        var itemsRead = 0;
+                        var readingErrors = false;
+                        //Lookup each menu item and store its details in an array
+                        menuItemNames.forEach(menuItem => {
+    
+                            //Lookup the menu item
+                            _data.read('menu', menuItem, (err, itemData) => {
+                                if (err) {
+                                    readingErrors = true;
+                                }
+                                //No errors, so store the item details in the menu array
+                                menus.menu.push(itemData);
+                                    
+                                //increment the items read and callback if all items have been read or error(s) was encountered
+                                itemsRead++;
+                                if (itemsRead == itemsToRead) {
+                                    if (!readingErrors) {
+                                        callback(200, menus);
+                                    } else {
+                                        callback(500, {Error: 'Errors encountered when attempting to read all the menu items. Some items may not have been read successfully'});
+                                    }
+                                }
+                            });
+                        });
+                    } else {
+                        callback(500, {Error: 'Could not list menu items'});
+                    }
+                });
+                
+                //Iterate through all menu items and store them in an array
+                
+            } else {
+                callback(404, {Error: 'The specified token does not exist'});
+            }
+        });
+    } else {
+        callback(403, {Error: 'Missing or invalid token'});
+    }
+}
+
+//Carts Handler
+handlers.carts = (data, callback) => {
+    const acceptableMethods = ['post', 'get', 'put', 'delete'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._carts[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+//Container for carts methods
+handlers._carts = {};
+
+//Carts - POST
+//Required fields: none
+//Required fields: none
+handlers._carts.post = (data, callback) => {
+    //Get token from headers
+    var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+
+    //Error if token is invalid
+    if (token) {
+        //Lookup the token
+        _data.read('tokens', token, (err, tokenData) => {
+            if (!err && tokenData) {
+                var userId = tokenData.userId
+                //Lookup the logged in user
+                _data.read('users', userId, (err, userData) => {
+                    if (!err && userData) {
+                        var cart = typeof(userData.cart) == 'object' && userData.cart instanceof Array ? userData.cart : [];
+
+                        //Update the user
+                        userData.cart = cart;
+
+                        //Store the updated user
+                        _data.update('users', userId, userData, (err) => {
+                            if (!err) {
+                                callback(200, {Error: 'Created user\'s cart successfully'});
+                            } else {
+                                callback(500, {Error: 'Could not update user'});
+                            }
+                        });
+                    }
+                });
+            } else {
+                callback(404, {Error: 'The specified token does not exist'});
+            }
+        });
+    } else {
+        callback(403, {Error: 'Missing or invalid token'});
+    }
+}
+
+//Carts - GET
+//Required fields: none
+//Required fields: none
+handlers._carts.get = (data, callback) => {
+    //Get token from headers
+    var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+
+    //Error if token is invalid
+    if (token) {
+        //Lookup the token
+        _data.read('tokens', token, (err, tokenData) => {
+            if (!err && token) {
+                var userId = tokenData.userId;
+                
+                //Lookup the logged in user 
+                _data.read('users', userId, (err, userData) => {
+                    if (!err && userData) {
+                        var userCart = userData.cart;
+                        callback(200, userCart);
+                    } else {
+                        callback(404);
+                    }
+                });
+            } else {
+                callback(404, {Error: 'The specified token does not exist'});
+            }
+        });
+    } else {
+        callback(403, {Error: 'Missing or invalid token'});
+    }
+}
+
+//Carts - PUT
+//Required fields: id, quantity
+//Required fields: none
+handlers._carts.put = (data, callback) => {
+    var id = typeof(data.payload.id) == 'number' && data.payload.id > 0 ? data.payload.id : false; 
+    var quantity = typeof(data.payload.quantity) == 'number' && data.payload.quantity > 0 ? data.payload.quantity : false; 
+
+    if (id && quantity) {
+        //Get token from headers
+        var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+    
+        //Error if token is invalid
+        if (token) {
+            //Lookup the token
+            _data.read('tokens', token, (err, tokenData) => {
+                if (!err && tokenData) {
+                    var userId = tokenData.userId;
+                    
+                    //Lookup the logged in user 
+                    _data.read('users', userId, (err, userData) => {
+                        if (!err && userData) {
+
+                            //Construct the new item object
+                            var newItem = {
+                                id,
+                                quantity
+                            }
+
+                            //Get the user's cart and update accordingly
+                            var userCart = typeof(userData.cart) == 'object' && userData.cart instanceof Array ? userData.cart : [];
+                            userCart.push(newItem);
+
+                            //Store the user's data
+                            _data.update('users', userId, userData, (err) => {
+                                if (!err) { 
+                                    callback(200, {Result: 'Added new item to cart successfully'});
+                                } else {
+                                    callback(500, {Error: 'Could not update user with new cart item'});
+                                }
+                            });
+                        } else {
+                            callback(404);
+                        }
+                    });
+                } else {
+                    callback(404, {Error: 'The specified token does not exist'});
+                }
+            });
+        } else {
+            callback(403, {Error: 'Missing or invalid token'});
+        }
+    } else {
+        callback(400, {Error: 'Missing or invalid required field(s)'});
+    }
+}
+
+//Orders Handler
+handlers.orders = (data, callback) => {
+    const acceptableMethods = ['post', 'get', 'put', 'delete'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._orders[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+//Container for orders submethods
+handlers._orders = {};
+
+//Orders - POST
+//Required fields: none
+//Required fields: none
+handlers._orders.post = (data, callback) => {
+    //Get token from heeaders
+    var token = typeof(data.headers.token) == 'string' ? data.headers.token : false
+
+    if (token) {
+        //Lookup the token
+        _data.read('tokens', token, (err, tokenData) => {
+            if (!err && tokenData) {
+                var userId = tokenData.userId;
+                
+                //Lookup the logged in user 
+                _data.read('users', userId, (err, userData) => {
+                    if (!err && userData) {
+                        //Get the user's cart 
+                        var userCart = typeof(userData.cart) == 'object' && userData.cart instanceof Array && userData.cart.length > 0 ? userData.cart : [];
+                        
+                        var id = helpers.createRandomString(10);
+
+                        var orderData = {
+                            id,
+                            userId,
+                            userCart
+                        }
+
+                        _data.create('orders', id, orderData, (err) => {
+                            if (!err) {
+                                callback(200, {Result: 'Created order successfully'});
+                            } else {
+                                callback(500, {Error: 'Could not create new order on user'});
+                            }
+                        });
+
+                        //Extract the prices from each item
+                        handlers._orders.performPriceExtraction(userCart, (err, prices) => {
+                            if (!err && prices) {
+                                helpers.stripe.getStripePaymentIntent(prices, (err, paymentIntent) => {
+                                    
+                                    console.log(paymentIntent);
+                                });
+                            } else {
+                                callback(500, {Error:err});
+                            }
+                        });
+                    } else {
+                        callback(404);
+                    }
+                });
+            } else {
+                callback(404, {Error: 'The specified token does not exist'});
+            }
+        });
+    } else {
+        callback(400, 'Missing or invalid token');
+    }
+}
+
+handlers._orders.performPriceExtraction = (userCart, callback) => {
+    //Lookup each item's price and store in an array
+    var itemPriceToExtract = userCart.length;
+    var prices = [];
+    var itemPriceExtracted = 0;
+    var priceExtractionErrors = false;
+    userCart.forEach((item) => {
+        
+        //Lookup the item
+       _data.read('menu', item.id, (err, itemData) => {
+            if (err) {
+                priceExtractionErrors = true;
+            } else {
+                prices.push(itemData.price);
+            }
+            itemPriceExtracted++;
+            if (itemPriceExtracted == itemPriceToExtract) {
+                if (!priceExtractionErrors) {
+                    callback(false, prices);
+                } else {
+                    callback('Errors encountered when attempting to read all the menu items and get their prices. Some items may not have been read successfully');
+                }
+            }
+       }); 
+    });
+}
+
+//Create_Payment_Intent Handler
+handlers.create_payment_intent = (data, callback) => {
+    var acceptableMethods = ['post'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        handlers._create_payment_intent[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+//Container for Create_Payment_Intent submethods
+handlers._create_payment_intent = {};
+
+//Create_Payment_Intent - POST
+handlers._create_payment_intent.post = (data, callback) => {
+    //Get token from headers
+    var token = typeof(data.headers.token) == 'string' ? data.headers.token : false;
+
+    if (token) {
+        //Lookup the token
+        _data.read('tokens', token, (err, tokenData) => {
+            if (!err && tokenData) {
+                var userId = tokenData.userId;
+                
+                //Lookup the logged in user 
+                _data.read('users', userId, (err, userData) => {
+                    if (!err && userData) {
+                        //Get the user's cart 
+                        var userCart = typeof(userData.cart) == 'object' && userData.cart instanceof Array && userData.cart.length > 0 ? userData.cart : [];
+                        
+                        //Extract the prices from each item
+                        handlers._orders.performPriceExtraction(userCart, (err, prices) => {
+                            if (!err && prices) {
+                                helpers.stripe.getStripePaymentIntent(prices, (err, paymentIntent) => {
+                                    if (!err && paymentIntent) {
+                                        
+                                    }
+                                    console.log(paymentIntent);
+                                });
+                            } else {
+                                callback(500, {Error:err});
+                            }
+                        });
+                    } else {
+                        callback(404);
+                    }
+                });
+            } else {
+                callback(404, {Error: 'The specified token does not exist'});
+            }
+        });
+    } else {
+        callback(400, 'Missing or invalid token');
+    }
+
+};
+
+
+//Export the handlers module
+module.exports = handlers;

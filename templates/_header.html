@@ -1,0 +1,60 @@
+<html>
+  <head>
+
+    <!-- General Settings -->
+    <meta charset="utf-8">
+    <meta http-equiv="content-language" content="en-us">
+    <base href={global.baseUrlHttps} />
+
+    <!-- Meta Tags -->
+    <title>{head.title} | {global.appName}</title>
+    <meta name="description" content="{head.description}">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Static Assets -->
+    <link rel="stylesheet" type="text/css" href="public/app.css" />
+    <link type="image/x-icon" rel="icon" href="favicon.ico">
+    <script type="text/javascript" charset="utf-8" src="public/app.js"></script>
+    
+    <!-- External Assets -->
+    <link rel="stylesheet" href="/public/global.css" />
+    
+  </head>
+  <body class="{body.class}">
+    <!-- Page Wrapper -->
+    <div class="wrapper">
+      <!-- Header -->
+      <div class="header">
+        <div class="header_wrapper">
+          <!-- Logo -->
+          <a id="button" class="logo" href="">
+            <img src="public/logo.png" alt="Logo" />
+          </a>
+          <!-- Navigation -->
+          <ul class="menu">
+            <li class="loggedIn">
+              <a id="button" href="#">Dashboard</a>
+            </li>
+            <li class="loggedIn">
+              <a id="button" class="cart" href="#">Cart<i id="cartDisplay">0</i></a>
+            </li>
+            <li class="loggedOut">
+              <a id="button" class="cta green" href="">Sign Up</a>
+            </li>
+            <li class="loggedOut">
+              <a id="button" class="cta blue" href="">Login</a>
+            </li>
+            <li class="loggedIn">
+              <a id="button" href="#">Account Settings</a>
+            </li>
+            <li class="loggedIn">
+              <a href="#" id="button">Logout</a>
+            </li>
+          </ul>
+        </div>
+        <div class="formSuccess">Your item has been added to cart </div>
+        <div class="clear"></div>
+      </div>
+
+      <!-- Page-Specific Content -->
+      <div class="content">

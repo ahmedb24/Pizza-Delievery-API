@@ -1,0 +1,22 @@
+<!-- Display a payment form -->
+<div class="paymentFormWrapper">
+  <h1>{head.title}</h1>
+  <form id="payment-form" action="api/orders" method="post" class="payment">
+    <div class="formError"></div>
+    <label for="card-element">
+      <h2>{head.description}</h2>
+    </label>
+    <div id="card-element"><!--Stripe.js injects the Card Element--></div>
+    <button id="submit" class="paymentButton">
+      <div class="spinner hidden" id="spinner"></div>
+      <span id="button-text">Pay now</span>
+    </button>
+    <div id="button">
+    </div>
+    <p id="card-error" role="alert"></p>
+    <p class="result-message hidden">
+      Payment succeeded, see the result in your
+      <a href="" target="_blank">Stripe dashboard.</a> Refresh the page to pay again.
+    </p>
+  </form>
+</div>

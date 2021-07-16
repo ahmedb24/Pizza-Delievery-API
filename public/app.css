@@ -1,0 +1,448 @@
+/*
+ * CSS Styles for Application
+ *
+ */
+
+/* Resets */
+body,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+div,
+span,
+header,
+footer,
+img,
+a,
+a:hover,
+a:active,
+a:visited,
+table,
+tr,
+td,
+th,
+form,
+input,
+button,
+select,
+textarea {
+  line-height: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: sans-serif;
+  font-size: 12px;
+  font-weight: normal;
+  text-decoration: none;
+  color: #1a1a1a;
+  border-width: 0;
+}
+
+.clear {
+  float: none;
+  width: 100%;
+  height: 1px;
+}
+
+/* Genaral styles */
+.blurb_paragraph {
+  font-size: 19px;
+  padding: 10px 0px;
+  line-height: 150%;
+}
+
+/* Main color palette */
+
+.header {
+  background-color: #f8f9fa;
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  border-color: #fff;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+div.header_wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-color: #ececec;
+  width: 800px;
+  height: 100px;
+  margin: 0px auto;
+}
+
+.header ul {
+  list-style-type: none;
+  text-align: right;
+  float: right;
+}
+
+.header ul li {
+  display: inline-block;
+  padding: 10px 10px 0 10px;
+
+}
+
+.header ul li a {
+  text-transform: none;
+  font-size: 15px;
+  border: 1px solid black;
+  padding: 7px;
+  border-radius: 3px;
+}
+
+.header ul li.loggedIn {
+  display: none;
+}
+
+#cartDisplay {
+  font-size: 15px;
+  font-style: normal;
+  background: #217844;
+  color: white;
+  border-radius: 5px;
+  padding: 1px 3px;
+  margin-left: 1px;
+}
+
+body.loggedIn .header ul li.loggedIn {
+  display: inline-block;
+}
+
+body.loggedIn .header ul li.loggedOut {
+  display: none;
+}
+
+
+.header .logo {
+  text-align: left;
+  float: left;
+}
+
+.header .logo img {
+  width: 70px;
+}
+
+li a.cta.green, li a.cta.blue {
+  width: 100px;
+  border-radius: 5px;
+  padding: 7px;
+  text-transform: initial;
+}
+
+.content {
+  margin-top: 150px;
+  width: 800px;
+  margin: 150px auto 40px auto;
+}
+
+.footer {
+  width: 100%;
+  background-color: #1a1a1a;
+  padding: 50px 0;
+  text-align: center;
+  border-width: 1px 0 0 0;
+  border-color: #fff;
+  border-style: solid;
+}
+
+.footer .copyright {
+  color: #fff;
+  font-size: 15px;
+}
+
+/* Index */
+h1{
+  text-align: center;
+  font-size: 20px;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 0 0 5px 0;
+}
+
+h2 {
+  text-align: center;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 0 0 20px 0;
+}
+
+.blurb h1 {
+  font-size: 55px;
+  padding: 0 0 15px 0;
+  text-align: left;
+}
+
+body.index .blurb, body.accountCreate div.blurb, body.sessionCreate div.blurb, body.accountEdit div.blurb, body.sessionDeleted div.blurb, body.accountDeleted div.blurb, body.menuList div.blurb, body.cartList div.blurb {
+  background-color: #ececec;
+  border-color: #b3b3b3;
+  border-style: dotted;
+  border-width: 1px;
+  border-radius: 10px;
+  margin: 0 auto 20px auto;
+  line-height: 150%;
+  padding: 50px;
+}
+
+.ctaWrapper {
+  text-align: center;
+}
+
+.cta,
+a.cta:hover,
+a.cta:active,
+a.cta:visited,
+button.cta:hover,
+button.cta:active,
+button.cta:visited {
+  background-color: #1a1a1a;
+  color: #fff;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  text-align: center;
+  display: inline-block;
+  padding: 15px;
+  width: 150px;
+  cursor: pointer;
+}
+
+.cta.blue {
+  background-color: #214478 !important;
+}
+
+.cta.green {
+  background-color: #217844 !important;
+}
+
+.cta.red {
+  background-color: #c83737 !important;
+}
+
+div a.cta.green.signInAndOrderbtn {
+    width: 100% !important;
+    text-transform: none ;
+    font-size: 15px;
+}
+
+.warning {
+  font-style: italic;
+  color: #c83737;
+  font-size: 17px;
+  text-align: center;
+  line-height: 150%;
+  padding: 0 0 20px 0;
+}
+
+/* Form Styling for Account Creation page and others */
+.formWrapper{
+  margin: 0 auto;
+  max-width: 500px;
+  padding: 15px;
+}
+
+.formError{
+  display: none;
+  background-color: #c83737;
+  font-style: italic;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 5px;
+  margin: 0 0 15px 0;
+  text-align: center;
+  border-color: #d87070;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.formSuccess{
+  display: none;
+  background-color: #217844;
+  font-style: italic;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 5px;
+  margin: 0 0 15px 0;
+  text-align: center;
+  border-color: #35c06d;
+  border-width: 2px;
+  border-style: solid;
+}
+
+hr {
+  margin: 30px 0;
+}
+
+.checkboxGroup input{
+  display: inline-block;
+  width: initial;
+  margin: 20px;
+}
+
+input.disabled{
+  background-color: #efefef;
+}
+
+.inputWrapper{
+  padding: 0 0 20px 0;
+}
+
+.inputLabel{
+  padding: 0 0 5px 0;
+  color: #808080;
+}
+
+input, select, option {
+  border-width: 1px;
+  border-radius: 2px;
+  padding: 7px 1%;
+  width: 100%;
+}
+
+
+/* Styling for Menu List Content*/
+div.menu_container {
+  margin: 100px auto;
+  background-color: white;
+}
+
+h1.menu_header1 {
+  font-size: 30px;
+  text-transform: none;
+  text-align: left;
+}
+
+
+div.menu_items_container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 30px 0px;
+}
+div.menu_items_container_item_wrapper {
+  flex: 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #efefef;
+  border-radius: 3px;
+  font-weight: bold;
+  margin: 20px; 
+}
+
+div.menu_items_container_item_wrapper img {
+  width: 200px;  
+}
+
+div.menu_items_container_item_wrapper h2 {
+  font-size: 20px;
+  text-transform: none;
+  
+}
+
+div.menu_items_container_item_wrapper_btn_and_price {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+div.menu_items_container_item_wrapper_btn_and_price a, div.menu_items_container_item_wrapper_btn_and_price a:hover {
+  background-color: #343a40;
+  color: white;
+  text-transform: none;
+  font-size: 15px;
+  margin-right: 5px;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+}
+
+div.menu_items_container_item_wrapper_btn_and_price p{
+  font-size: 17px;
+  padding: 5px;
+  margin-left: 5px;
+  font-weight: bold;
+}
+
+
+/* Styling for Cart items*/
+div.cart_container {
+  display: flex;
+  flex-direction: column;
+  width: 800px;
+}
+
+h1.cart_container_header1 {
+  text-align: left;
+  padding-bottom: 30px;
+}
+
+
+div.cart_container_item_rows {
+  border-top: 1px solid #e6e9ec;
+  border-bottom: 1px solid #e6e9ec;
+}
+
+div.cart_container_item_rows_row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;        
+  flex-wrap: wrap;
+  padding-top: 5px;
+  border-top: 1px solid #e6e9ec;
+  border-bottom: 1px solid #e6e9ec;
+  padding-bottom: 5px;
+}
+
+
+div.cart_container_item_rows_row img {
+  width: 100px;
+}
+
+div.cart_container_item_rows_row h1, div.cart_container_item_rows_row p, div.cart_container_item_rows_row input {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+div.cart_container_item_rows_row .wrapper {
+  width: 150px;
+}
+
+div.cart_container_item_rows_row .price, div.cart_container_item_rows_row .button {
+  border-width: 1px;
+  border-radius: 2px;
+  padding: 3px 1%;
+  width: 130px;
+}
+
+div.cart_container_item_rows_row .button {
+  padding: 5px 1%;
+  width: 70px;
+}
+
+div.cart_container_total {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 0px;
+}
+
+div.cart_container_total button.cart_total_items, div.cart_container_total button.cart_total_items:hover {
+  text-transform: none;
+  padding: 10px 0px;
+  width: 100px;
+} 
+
+.cart_total_items {
+  font-size: 17px;
+  font-weight: bold;
+}
