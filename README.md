@@ -1,5 +1,5 @@
 # Pizza-Delievery-API
-A Nodejs API with zero external libraries 
+An API built with Nodejs and zero external libraries. 
 
 
 This project seeks to illustrate how powerful Nodejs can be from handling requests to spinning 
